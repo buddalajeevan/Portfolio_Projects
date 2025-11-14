@@ -18,36 +18,68 @@ The pipeline includes data ingestion from ADLS, PySpark-based transformations, s
 
 ## Architecture Diagram
 
-ADLS (CSV Files)
-|
-v
-Microsoft Fabric Data Factory
-(ETL Pipeline - Ingestion)
-|
-v
-Lakehouse - Bronze Layer
-(Raw Parquet Data)
-|
-v
-PySpark Notebooks in Fabric
-(Data Cleaning, Joins, Standardization)
-|
-v
-Lakehouse - Silver Layer
-(Refined & Integrated Data)
-|
-v
-Aggregations & Business Logic
-|
-v
-Lakehouse - Gold Layer
-(Analytics-Ready Data)
-|
-v
-Semantic Model (Fabric)
-|
-v
-Power BI Reports (Fabric Integrated)
+                       +-------------------------------+
+                       |    Azure Data Lake Storage    |
+                       |      (Ecommerce CSV Files)    |
+                       +---------------+---------------+
+                                       |
+                                       v
+                       +-------------------------------+
+                       |     Microsoft Fabric Data     |
+                       |          Factory (ETL)        |
+                       |   - Ingestion from ADLS       |
+                       |   - Load to Lakehouse         |
+                       +---------------+---------------+
+                                       |
+                                       v
+                       +-------------------------------+
+                       |     Lakehouse - Bronze Layer  |
+                       |   (Raw Data in Parquet Format)|
+                       +---------------+---------------+
+                                       |
+                                       v
+                       +-------------------------------+
+                       |     PySpark Notebook in       |
+                       |      Microsoft Fabric         |
+                       |   - Cleaning                  |
+                       |   - Transformations           |
+                       |   - Joins                     |
+                       +---------------+---------------+
+                                       |
+                                       v
+                       +-------------------------------+
+                       |     Lakehouse - Silver Layer  |
+                       | (Refined, Joined, Standardized)|
+                       +---------------+---------------+
+                                       |
+                                       v
+                       +-------------------------------+
+                       |     PySpark Notebook          |
+                       |   - Aggregations              |
+                       |   - Business Metrics          |
+                       +---------------+---------------+
+                                       |
+                                       v
+                       +-------------------------------+
+                       |      Lakehouse - Gold Layer   |
+                       |   (Analytics-Ready Data)      |
+                       +---------------+---------------+
+                                       |
+                                       v
+                       +-------------------------------+
+                       |     Semantic Model (Fabric)   |
+                       |   - Measures                  |
+                       |   - Relationships             |
+                       +---------------+---------------+
+                                       |
+                                       v
+                       +-------------------------------+
+                       |     Power BI Reports          |
+                       |   - Sales Metrics             |
+                       |   - Customer Insights         |
+                       |   - Ecommerce Analysis        |
+                       +-------------------------------+
+
 
 
 
