@@ -1,28 +1,28 @@
 BRONZE LAYER - 
 # Load messy CSVs
-path = "/lakehouse/default/Files/raw/customer360/"
 
-customers_raw = spark.read.option("header", True).csv(path + "customers.csv")
-orders_raw = spark.read.option("header", True).csv(path + "orders.csv")
-payments_raw = spark.read.option("header", True).csv(path + "payments.csv")
-support_raw = spark.read.option("header", True).csv(path + "support_tickets.csv")
-web_raw = spark.read.option("header", True).csv(path + "web_activities.csv")
+customers_raw = spark.read.parquet("abfss://ecommerce@onelake.dfs.fabric.microsoft.com/ecommerce_lakehouse.Lakehouse/Files/Bronze/customers.parquet")
+orders_raw = spark.read.parquet("abfss://ecommerce@onelake.dfs.fabric.microsoft.com/ecommerce_lakehouse.Lakehouse/Files/Bronze/orders.parquet")
+payments_raw = spark.read.parquet("abfss://ecommerce@onelake.dfs.fabric.microsoft.com/ecommerce_lakehouse.Lakehouse/Files/Bronze/payments.parquet")
+support_raw = spark.read.parquet("abfss://ecommerce@onelake.dfs.fabric.microsoft.com/ecommerce_lakehouse.Lakehouse/Files/Bronze/support_tickets.parquet")
+web_raw = spark.read.parquet("abfss://ecommerce@onelake.dfs.fabric.microsoft.com/ecommerce_lakehouse.Lakehouse/Files/Bronze/web_activities.parquet")
 
+# Create delta Bronze table
 # Save as Bronze Delta Tables
-customers_raw.write.format("delta").mode("overwrite").saveAsTable("bronze.customers")
-orders_raw.write.format("delta").mode("overwrite").saveAsTable("bronze.orders")
-payments_raw.write.format("delta").mode("overwrite").saveAsTable("bronze.payments")
-support_raw.write.format("delta").mode("overwrite").saveAsTable("bronze.support")
-web_raw.write.format("delta").mode("overwrite").saveAsTable("bronze.web")
+customers_raw.write.format("delta").mode("overwrite").saveAsTable("customers")
+orders_raw.write.format("delta").mode("overwrite").saveAsTable("orders")
+payments_raw.write.format("delta").mode("overwrite").saveAsTable("payments")
+support_raw.write.format("delta").mode("overwrite").saveAsTable("support")
+web_raw.write.format("delta").mode("overwrite").saveAsTable("web")
 
 
 Silver Layer – Clean & Normalize
 
 from pyspark.sql.functions import *
-from pyspark.sql.types import DoubleType
+from pyspark.sql.types *
 
 # Clean customers
-customers = spark.table("bronze.customers")
+customers = spark.table("customers")
 
 customers_clean = (
     customers
@@ -36,10 +36,10 @@ customers_clean = (
     .dropDuplicates(["customer_id"])
     .dropna(subset=["customer_id", "email"])
 )
-customers_clean.write.format("delta").mode("overwrite").saveAsTable("silver.customers")
+customers_clean.write.format("delta").mode("overwrite").saveAsTable("silver_customers")
 
 # Clean orders
-orders = spark.table("bronze.orders")
+orders = spark.table("orders")
 orders_clean = (
     orders
     .withColumn("order_date", 
@@ -53,10 +53,10 @@ orders_clean = (
     .dropna(subset=["customer_id", "order_date"])
     .dropDuplicates(["order_id"])
 )
-orders_clean.write.format("delta").mode("overwrite").saveAsTable("silver.orders")
+orders_clean.write.format("delta").mode("overwrite").saveAsTable("silver_orders")
 
 # Clean payments
-payments = spark.table("bronze.payments")
+payments = spark.table("payments")
 payments_clean = (
     payments
     .withColumn("payment_date", to_date(regexp_replace(col("payment_date"), "/", "-")))
@@ -67,10 +67,10 @@ payments_clean = (
     .withColumn("amount", when(col("amount") < 0, None).otherwise(col("amount")))
     .dropna(subset=["customer_id", "payment_date", "amount"])
 )
-payments_clean.write.format("delta").mode("overwrite").saveAsTable("silver.payments")
+payments_clean.write.format("delta").mode("overwrite").saveAsTable("silver_payments")
 
 # Clean support
-support = spark.table("bronze.support")
+support = spark.table("support")
 support_clean = (
     support
     .withColumn("ticket_date", to_date(regexp_replace(col("ticket_date"), "/", "-")))
@@ -80,10 +80,10 @@ support_clean = (
     .dropDuplicates(["ticket_id"])
     .dropna(subset=["customer_id", "ticket_date"])
 )
-support_clean.write.format("delta").mode("overwrite").saveAsTable("silver.support")
+support_clean.write.format("delta").mode("overwrite").saveAsTable("silver_support")
 
 # Clean web
-web = spark.table("bronze.web")
+web = spark.table("web")
 web_clean = (
     web
     .withColumn("session_time", to_date(regexp_replace(col("session_time"), "/", "-")))
@@ -92,16 +92,19 @@ web_clean = (
     .dropDuplicates(["session_id"])
     .dropna(subset=["customer_id", "session_time", "page_viewed"])
 )
-web_clean.write.format("delta").mode("overwrite").saveAsTable("silver.web")
+web_clean.write.format("delta").mode("overwrite").saveAsTable("silver_web")
 
 
 -----GOLD 
 
-cust = spark.table("silver.customers").alias("c")
-orders = spark.table("silver.orders").alias("o")
-payments = spark.table("silver.payments").alias("p")
-support = spark.table("silver.support").alias("s")
-web = spark.table("silver.web").alias("w")
+from pyspark.sql.functions import *
+from pyspark.sql.types import *
+
+cust = spark.table("silver_customers").alias("c")
+orders = spark.table("silver_orders").alias("o")
+payments = spark.table("silver_payments").alias("p")
+support = spark.table("silver_support").alias("s")
+web = spark.table("silver_web").alias("w")
 
 customer360 = (
     cust
@@ -110,12 +113,32 @@ customer360 = (
     .join(support, "customer_id", "left")
     .join(web, "customer_id", "left")
     .select(
-        "c.customer_id", "c.name", "c.email", "c.gender", "c.dob", "c.location",
-        "o.order_id", "o.order_date", "o.amount", "o.status",
-        "p.payment_method", "p.payment_status", "p.amount",
-        "s.ticket_id", "s.issue_type", "s.ticket_date", "s.resolution_status",
-        "w.page_viewed", "w.device_type", "w.session_time"
+         col("c.customer_id"),
+         col("c.name"), 
+         col("c.email"), 
+         col("c.gender"), 
+         col("c.dob"),
+         col("c.location"),
+
+         col("o.order_id"),
+         col("o.order_date"),
+         col("o.amount").alias("order_amount"),
+         col("o.status").alias("order.status"),
+
+         col("p.payment_method"), 
+         col("p.payment_status"), 
+         col("p.amount").alias("payment_amount"),
+
+        col("s.ticket_id"), 
+        col("s.issue_type"), 
+        col("s.ticket_date"), 
+        col("s.resolution_status"),
+
+        col("w.page_viewed"), 
+        col("w.device_type"), 
+        col("w.session_time")
     )
 )
+display(customer360.limit(10))
 
-customer360.write.format("delta").mode("overwrite").saveAsTable("gold.customer360")
+customer360.write.format("delta").mode("overwrite").saveAsTable("gold_customer360")
